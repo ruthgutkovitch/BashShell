@@ -75,18 +75,28 @@ void _removeBackgroundSign(char* cmd_line) {
   cmd_line[str.find_last_not_of(WHITESPACE, idx) + 1] = 0;
 }
 
-// TODO: Add your implementation for classes in Commands.h
+
 
 //class ShowPidCommand : public BuiltInCommand
 
-//ShowPidCommand::ShowPidCommand(const char *cmd_line) {}
+ShowPidCommand::ShowPidCommand(const char *cmd_line) {
+    int maxArguments = 0;
+    string name = showpid;
+    vector<string> arguments = cmd_line;
+
+}
 
 void ShowPidCommand::execute() {
     cout<< smash.getSmashPid()<<endl; //check
 }
 
+ChangeDirCommand::ChangeDirCommand(const char *cmd_line, char **plastPwd) {
 
+}
 
+void ChangeDirCommand::execute() {
+
+}
 
 
 SmallShell::SmallShell() {
@@ -94,17 +104,52 @@ SmallShell::SmallShell() {
     pid_t smash_pid = getpid();
     JobsList jobs;
     stack<string> dirs;
+    dirs.push(getcwd());
 
 }
 
 SmallShell::~SmallShell() {
 // TODO: add your implementation
-}
+} //default
 
 /**
 * Creates and returns a pointer to Command class which matches the given command line (cmd_line)
 */
 Command * SmallShell::CreateCommand(const char* cmd_line) {
+    string cmd_s = _trim(string(cmd_line));
+    string firstWord = cmd_s.substr(0, cmd_s.find_first_of(" \n"));
+
+    if (firstWord.compare("chprompt") == 0) {
+        return new ChangePrompt(cmd_line);
+    }
+    else if (firstWord.compare("showpid") == 0) {
+        return new ShowPidCommand(cmd_line);
+    }
+    else if (firstWord.compare("pwd") == 0) {
+        return new GetCurrDirCommand(cmd_line);
+    }
+    else if (firstWord.compare("cd") == 0) {
+        return new ShowPidCommand(cmd_line);
+    }
+    else if (firstWord.compare("jobs") == 0) {
+        return new JobsCommand(cmd_line);
+    }
+    else if (firstWord.compare("kill") == 0) {
+        return new KillCommand(cmd_line);
+    }
+    else if (firstWord.compare("fg") == 0) {
+        return new ForegroundCommand(cmd_line);
+    }
+    else if (firstWord.compare("bg") == 0) {
+        return new BackgroundCommand(cmd_line);
+    }
+    else if (firstWord.compare("quit") == 0) {
+        return new QuitCommand(cmd_line);
+    }
+    else if (firstWord.compare("head") == 0) {
+        return new HeadCommand(cmd_line);
+    }
+
 	// For example:
 /*
   string cmd_s = _trim(string(cmd_line));

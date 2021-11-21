@@ -75,7 +75,7 @@ class GetCurrDirCommand : public BuiltInCommand {
 
 class ShowPidCommand : public BuiltInCommand {
  public:
-  ShowPidCommand(const char* cmd_line)=default;
+  ShowPidCommand(const char* cmd_line);
   virtual ~ShowPidCommand() {}
   void execute() override;
 };
@@ -159,6 +159,10 @@ class HeadCommand : public BuiltInCommand {
   void execute() override;
 };
 
+class ChangePrompt: public BuiltInCommand{
+
+};
+
 
 class SmallShell {
  private:
@@ -166,7 +170,6 @@ class SmallShell {
   pid_t smash_pid;
   std::stack<std::string> dirs;
   JobsList jobs;
-
 
   SmallShell();
  public:
@@ -179,9 +182,10 @@ class SmallShell {
     // Instantiated on first use.
     return instance;
   }
-  ~SmallShell();
+  ~SmallShell()=default;
   void executeCommand(const char* cmd_line);
   pid_t getSmashPid() const;
+  void addDir();
 };
 
 #endif //SMASH_COMMAND_H_
