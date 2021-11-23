@@ -11,8 +11,6 @@
 #define COMMAND_ARGS_MAX_LENGTH (200)
 #define COMMAND_MAX_ARGS (20)
 #define MAX_CHARACTERS (80)
-#define N(10)
-
 
 const std::string WHITESPACE = " \n\r\t\f\v";
 
@@ -21,14 +19,17 @@ protected:
     const char* cmd_line;
     std::vector<std::string> args;
     pid_t pid;
+    const char* cmd_line_unmodified;
 public:
-    Command(const char* cmd_line, std::vector<std::string> args, pid_t pid = 0);
-    virtual ~Command() = default;
+    Command(const char* cmd_line, std::vector<std::string> args, pid_t pid = 0, const char* cmd_line_unmodified = nullptr);
+    virtual ~Command() {
+    }
     virtual void execute() = 0;
     //virtual void prepare();
     //virtual void cleanup();
     pid_t getPid();
-    const char* getCmdLine();
+    virtual const char* getCmdLine();
+    const char* getCmdLineUnmodified();
 };
 
 class BuiltInCommand : public Command {
@@ -38,10 +39,14 @@ public:
 };
 
 class ExternalCommand : public Command {
+    bool ampersand;
 public:
-    ExternalCommand(const char* cmd_line);
+    ExternalCommand(const char* cmd_line, std::vector<std::string> args, bool ampersand, const char* cmd_line_unmodified,
+                    pid_t pid = 0);
     virtual ~ExternalCommand() {}
     void execute() override;
+    const char* getCmdLine() override;
+    //char* readArguments(std::vector<std::string> args);
 };
 
 class PipeCommand : public Command {
@@ -70,7 +75,7 @@ public:
 };
 
 class ChangeDirCommand : public BuiltInCommand {
-    ChangeDirCommand(const char* cmd_line,std::vector<std::string> args, char** plastPwd);
+    ChangeDirCommand(const char* cmd_line, char** plastPwd);
     virtual ~ChangeDirCommand() {}
     void execute() override;
 };
@@ -112,6 +117,7 @@ public:
         JobEntry(Command* command, time_t time, int job_id, bool isStopped):
                 command(command), time(time),
                 job_id(job_id), isStopped(isStopped) {}
+        ~JobEntry() = default;
         Command* getCommand();
         time_t getTime();
         int getJobId();
@@ -123,7 +129,7 @@ public:
 
 public:
     JobsList() = default;
-    ~JobsList() = default;
+    ~JobsList(); // delete all commands
     void addJob(Command* cmd, bool isStopped = false);
     void printJobsList();
     void killAllJobs();
@@ -172,7 +178,7 @@ public:
 
 class HeadCommand : public BuiltInCommand {
 public:
-    HeadCommand(const char* cmd_line,std::vector<std::string> args);
+    HeadCommand(const char* cmd_line);
     virtual ~HeadCommand() {}
     void execute() override;
 };
@@ -203,9 +209,6 @@ public:
     std::string getCurDirectory() const;
     pid_t getShellPid() const;
     JobsList* getJobListPtr();
-    int getStackSize() const;
-    std::string getLastDirectory() const;
-    void changeCurDirectory(std::string directory);
 };
 
 #endif //SMASH_COMMAND_H_
