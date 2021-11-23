@@ -202,6 +202,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     else if(cmd_name == "pwd"){
         cmd = new GetCurrDirCommand(cmd_line_no_sign, args);
     }
+    else if(cmd_name=="cd"){
+        cmd = new ChangeDirCommand(cmd_line_no_sign,args);
+    }
     else if(cmd_name == "jobs"){
         cmd = new JobsCommand(cmd_line_no_sign,args, smash.getJobListPtr());
     }
@@ -213,6 +216,9 @@ Command * SmallShell::CreateCommand(const char* cmd_line) {
     }
     else if(cmd_name == "quit"){
         cmd = new QuitCommand(cmd_line_no_sign, args, smash.getJobListPtr());
+    }
+    else if(cmd_name=="head"){
+        cmd = new HeadCommand(cmd_line_no_sign,args);
     }
     delete[] cmd_line_no_sign;
     //built in commands **********************************
@@ -360,7 +366,7 @@ void JobsList::printJobsList(){
 void JobsList::killAllJobs(){
     for(std::list<JobEntry>::iterator it = jobs_list.begin(); it != jobs_list.end(); ++it){
         if(kill(it->getCommand()->getPid(), SIGKILL) == -1){
-            //error
+            perror("smash error: kill failed")
         }
     }
 }
@@ -385,6 +391,9 @@ void JobsList::removeFinishedJobs(){
                 removeJobById(it->getJobId());
             }
         }
+    }
+    if(pid_finished<0){
+        perror("smash error: waitpid failed");
     }
 }
 
@@ -447,11 +456,11 @@ void ForegroundCommand::execute(){
 
     jobs_ptr->printJobById(job_id);
     if(kill(jobs_ptr->getPidByJobId(job_id), SIGCONT) == -1){
-        //error
+        perror("smash error: kill failed");
     }
     pid_t job_pid = jobs_ptr->getPidByJobId(job_id);
     if(waitpid(job_pid, nullptr, 0) == -1){
-        //perror
+        perror("smash error: waitpid failed");
     }
     jobs_ptr->removeJobById(job_id);
 }
@@ -469,7 +478,7 @@ void QuitCommand::execute(){
                       << std::endl;
             pid_t job_pid = jobs_ptr->getPidByJobId(it->getJobId());
             if(kill(job_pid, SIGKILL) == -1){
-                //perror
+                perror("smash error: kill failed");
             }
         }
     }
@@ -526,7 +535,7 @@ void KillCommand::execute() {
                 return;
             }
             if(kill(job_pid, signal) == -1) {
-                //perror
+                perror("smash error: kill failed");
             }
             std::cout<<"signal number "<< signal <<" was sent to pid "<< job_pid <<std::endl;
 
@@ -548,7 +557,7 @@ void BackgroundCommand::execute() {
         if ( ptr!= nullptr){
             if(ptr->checkIsStopped()){
                 if (kill(jobs_ptr->getPidByJobId(job_id), SIGCONT) == -1){
-                    //perror
+                    perror("smash error: kill failed");
                 }
                 else{
                     ptr->changeIsStopped(false);
@@ -565,13 +574,11 @@ void BackgroundCommand::execute() {
         }
     }
     else if(args.size()==1){
-
-        //JobEntry *getLastStoppedJob(int *jobId);
         int* last_stopped_job_id=nullptr;
         JobsList::JobEntry* ptr = jobs_ptr->getLastStoppedJob(last_stopped_job_id);
         if (ptr!= nullptr){
             if (kill(jobs_ptr->getPidByJobId(*last_stopped_job_id), SIGCONT) == -1){
-                // perror
+                perror("smash error: kill failed");
             }
             else{
                 ptr->changeIsStopped(false);
@@ -615,7 +622,7 @@ void ChangeDirCommand::execute() {
         }
 
         if(chdir(directory)==-1){ //const
-            //perror
+            perror("smash error: chdir failed");
         }
         else{
             smash.changeCurDirectory(directory);
@@ -647,15 +654,15 @@ void HeadCommand::execute() {
     }
     int file=open(path,O_RDONLY);
     if(file==-1){
-        //perror("")
+        perror("smash error: open failed");
     }
     char ch, buffer[INT64_MAX];
     size_t index =0, lines = 0;
     size_t readRes = 0, writeRes=0;
     while((readRes=read(file,&ch,1))!=0){
         if(readRes<0){
-            //perror
-            return -1;
+            perror("smash error: read failed");
+            return;
         }
         if(ch=="\n"){
             buffer[index]=ch;
@@ -668,8 +675,8 @@ void HeadCommand::execute() {
         while(writeRes!=buffer_len){
             size_t res = write(STDOUT_FILENO,buffer+writeRes,buffer_len-writeRes);
             if(res<0){
-                //perror
-                return -1;
+                perror("smash error: write failed");
+                return;
             }
             writeRes += res;
         }
@@ -680,12 +687,10 @@ void HeadCommand::execute() {
         else{
             buffer[index++]=ch
         }
-
-
     }
     if(close(file)<0){
-        //perror
-        return -1;
+        perror("smash error: close failed");
+        return;
     }
 }
 
